@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專家級 LCS 最長共同子序列互動報告</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --border-color: #e2e8f0;
+            --highlight-zero: #e2e8f0;
+            --highlight-match: #86efac;
+            --highlight-mismatch: #fca5a5;
+            --highlight-current: #fde047;
+            --highlight-path: #93c5fd;
+            --highlight-path-match: #16a34a;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3 { color: var(--primary); }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Inline code styling */
+        p > code, li > code {
+            background-color: #f1f5f9;
+            color: #e11d48;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 500;
+        }
+
+        /* Preformatted Code Block Styling (Dark Theme) */
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            font-weight: normal;
+        }
+        /* Simple Syntax Highlight Colors for the code block */
+        .c-comment { color: #7f848e; font-style: italic; }
+        .c-keyword { color: #c678dd; }
+        .c-type { color: #e5c07b; }
+        .c-func { color: #61afef; }
+        .c-string { color: #98c379; }
+
+        /* Table Styles */
+        .dp-table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        table {
+            border-collapse: collapse;
+            font-size: 18px;
+            font-family: monospace;
+        }
+        th, td {
+            border: 2px solid var(--border-color);
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            vertical-align: middle;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        th { background-color: #f1f5f9; font-weight: bold; }
+        
+        /* Highlight Classes */
+        .cell-zero { background-color: var(--highlight-zero); }
+        .cell-current { background-color: var(--highlight-current); font-weight: bold; transform: scale(1.1); box-shadow: 0 0 10px rgba(253, 224, 71, 0.8); z-index: 10; position: relative; }
+        .cell-match { background-color: var(--highlight-match); }
+        .cell-mismatch { background-color: var(--highlight-mismatch); }
+        .cell-path { background-color: var(--highlight-path); }
+        .cell-path-match { background-color: var(--highlight-path-match); color: white; font-weight: bold; font-size: 22px;}
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        button, select, input {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        select, input {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+        .status-msg {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e0f2fe;
+            border-radius: 6px;
+            min-height: 24px;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 16px; height: 16px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>網頁與演算法專家級：LCS 最長共同子序列互動報告</h1>
+
+    <!-- 1. LCS 簡介 -->
+    <div class="section-card">
+        <h2>1. 什麼是 LCS？從「子序列」說起</h2>
+        <p>在了解 LCS 之前，我們必須先知道什麼是<strong>「子序列」 (Subsequence)</strong>。</p>
+        <p>子序列指的是：從原本的字串中，隨意刪去某些字元（也可以不刪），但<strong>絕對不改變剩餘字元的相對順序</strong>所形成的新字串。換句話說，子序列在原字串中不需要是連續的。</p>
+        <p>那麼，<strong>最長共同子序列 (Longest Common Subsequence, LCS)</strong> 顧名思義，就是給定兩個字串，找出它們之間「長度最長」的那一個共同子序列。需要特別強調的是：<strong>LCS 的解答往往不只一個</strong>。只要兩組不同字元的組合，都能達到這個「最長」的長度，它們就都是正確的 LCS 解答！</p>
+    </div>
+
+    <!-- 2. 為甚麼需要用到LCS? 和暴力解有甚麼不同? -->
+    <div class="section-card">
+        <h2>2. 為什麼必須用動態規劃 (DP)？那些被記錄下來的歷史</h2>
+        <p>如果我們要找兩個字串的 LCS，最直覺的想法是「暴力解」(Brute-Force)：</p>
+        <ul>
+            <li><strong>暴力解的極限：</strong> 將字串 S1 的「所有可能子序列」列出來，再去字串 S2 裡面尋找。如果 S1 長度為 m，它的子序列就有 <code>2^m</code> 種組合。只要字串長度超過 30，演算法可能要算到天荒地老，時間複雜度高達 <strong>O(n · 2^m)</strong>。</li>
+        </ul>
+        <p><strong>這就是為什麼我們需要動態規劃 (DP)：利用「紀錄」來避開重複計算。</strong></p>
+        <p>DP 的核心哲學是：「把算過的答案記錄下來」。<br>
+        在 LCS 的 DP 解法中，我們建立了一個二維表格。表格裡的每一個格子 <code>DP[i][j]</code> 都在記錄著：<strong>「字串 S1 的前 i 個字元」與「字串 S2 的前 j 個字元」的 LCS 長度是多少？</strong></p>
+        <p>當我們一步步往後計算時，我們根本不需要重新掃描前面的字串。因為前面的比對結果，早就化為數字安穩地躺在表格的左方、上方和左上方了！我們只要根據當前的字元相不相同，做個簡單的「查表」與「加法」，就能推導出新長度。這種「用空間（表格）換取時間」的策略，讓複雜度瞬間驟降到 <strong>O(m · n)</strong>。</p>
+
+        <h3>為什麼表格要多一層保護？</h3>
+        <p>建立 DP 表格時，我們會刻意在最前面多加第 0 行與第 0 列，並將它們填滿 <code>0</code>。這就是所謂的<strong>保護層 (Padding/Sentinel)</strong>。<br>
+        因為在查表時，我們經常需要看「左上角」的值 (<code>DP[i-1][j-1]</code>)。如果沒有這層 0，在比對第一個字元時程式就會發生陣列越界 (Index Out of Bounds)。這層 0 巧妙地代表了「空字串與任何字串的共同子序列長度為 0」，既保護了程式，也賦予了邊界合理的數學意義。</p>
+    </div>
+
+    <!-- 3. DP 動畫建立 -->
+    <div class="section-card">
+        <h2>3. DP 表格建立動畫</h2>
+        <p>字串 S1 = <code>ABCBDAB</code>，S2 = <code>BDCABA</code>。我們從完全空白開始，先初始化保護層的 0，接著一步一步查表填入數字。</p>
+        <div class="legend">
+            <div class="legend-item"><div class="color-box" style="background: var(--highlight-current);"></div> 目前計算位置</div>
+            <div class="legend-item"><div class="color-box" style="background: var(--highlight-match);"></div> 字元相同 (+1)</div>
+            <div class="legend-item"><div class="color-box" style="background: var(--highlight-mismatch);"></div> 字元不同 (取最大值)</div>
+        </div>
+        <div id="dp-anim-container"></div>
+    </div>
+
+    <!-- 4. 回溯尋找答案 -->
+    <div class="section-card">
+        <h2>4. 回推找答案 (Backtracking) 的運作法則</h2>
+        <p>填完表格，我們只知道 LCS 的「最長長度」在右下角，但不知道「字串是什麼」。這時我們需要從右下角開始，往左上角<strong>逆向回推 (Backtrack)</strong>。回推的法則非常明確：</p>
+        
+        <div style="background-color: #f8fafc; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px;">
+            <p><strong>原則 1：當比對字元「相同」時</strong><br>
+            這代表該字元絕對是 LCS 的一部分！我們將它記錄下來，並朝著對角線 <strong>左上方 (i-1, j-1)</strong> 移動，因為長度是從那裡加 1 過來的。</p>
+            <p><strong>原則 2：當比對字元「不同」時</strong><br>
+            代表當前的長度是從之前繼承來的。我們去比較表格的 <strong>上方 (i-1, j)</strong> 與 <strong>左方 (i, j-1)</strong> 哪個數值比較大：<br>
+            ➔ 上方較大，往上走。<br>
+            ➔ 左方較大，往左走。<br>
+            ➔ <strong>兩者一樣大：</strong> 這是最有趣的情況！代表往上走或往左走，都能湊出最長子序列。這就是為什麼 <strong>LCS 解答不只一個的根本原因</strong>！你可以走任意一邊，探索不同的路徑，得到不同的字串組合。</p>
+        </div>
+
+        <div class="controls" style="margin-bottom: 15px;">
+            <label for="path-select"><strong>選擇要觀察的回溯路徑：</strong></label>
+            <select id="path-select">
+                <!-- 動態載入路徑 -->
+            </select>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="color-box" style="background: var(--highlight-path-match);"></div> 找到共同字元</div>
+            <div class="legend-item"><div class="color-box" style="background: var(--highlight-path);"></div> 尋找路徑移動</div>
+        </div>
+        <div id="bt-anim-container"></div>
+    </div>
+
+    <!-- 5. 互動測驗與遊樂場 -->
+    <div class="section-card">
+        <h2>5. 實戰測驗與互動遊樂場</h2>
+        
+        <div style="background-color: #f5f3ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd6fe;">
+            <h3 style="margin-top: 0; color: #8b5cf6;">📝 實戰練習題：基因片段鑑定</h3>
+            <p><strong>請試著在紙上自行推導：</strong>找出 <code>S1 = "GACACG"</code> 與 <code>S2 = "AGCACACA"</code> 的最長共同子序列。</p>
+            <p style="margin-bottom: 0;">算完之後，你可以直接點擊下方的<strong>「產生動畫驗證解答」</strong>按鈕，來檢查你的 DP 表格與回溯路徑是否正確！</p>
+            <p style="font-size: 0.9em; color: #6b7280; margin-top: 5px;">💡 驗證完畢後，你也可以自由修改下方的字串，輸入自己的題目進行觀察。</p>
+        </div>
+
+        <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
+            <input type="text" id="custom-s1" placeholder="輸入 S1" value="GACACG" maxlength="12">
+            <input type="text" id="custom-s2" placeholder="輸入 S2" value="AGCACACA" maxlength="12">
+            <button id="btn-generate-custom" style="background-color: #8b5cf6;">產生動畫驗證解答</button>
+        </div>
+        <div id="custom-anim-container"></div>
+    </div>
+
+    <!-- 6. 程式碼說明 (C++) -->
+    <div class="section-card">
+        <h2>6. 核心程式碼解析 (C++)</h2>
+        <p>這裡我們不放雜亂的樣板程式碼，直接鎖定 LCS 演算法的核心：<strong>1. 建立 DP 表格</strong> 與 <strong>2. 回推路徑</strong>。</p>
+        
+        <h3>第一部分：建表與查表紀錄</h3>
+        <pre><code><span class="c-comment">// 宣告時長度為 m+1 與 n+1，預設填入 0 (這就是我們說的保護層)</span>
+<span class="c-type">vector</span>&lt;<span class="c-type">vector</span>&lt;<span class="c-keyword">int</span>&gt;&gt; dp(m + <span class="c-keyword">1</span>, <span class="c-type">vector</span>&lt;<span class="c-keyword">int</span>&gt;(n + <span class="c-keyword">1</span>, <span class="c-keyword">0</span>));
+
+<span class="c-keyword">for</span> (<span class="c-keyword">int</span> i = <span class="c-keyword">1</span>; i &lt;= m; i++) {
+    <span class="c-keyword">for</span> (<span class="c-keyword">int</span> j = <span class="c-keyword">1</span>; j &lt;= n; j++) {
+        <span class="c-keyword">if</span> (s1[i - <span class="c-keyword">1</span>] == s2[j - <span class="c-keyword">1</span>]) {
+            <span class="c-comment">// 字元相同：直接取左上角的紀錄 + 1</span>
+            dp[i][j] = dp[i - <span class="c-keyword">1</span>][j - <span class="c-keyword">1</span>] + <span class="c-keyword">1</span>; 
+        } <span class="c-keyword">else</span> {
+            <span class="c-comment">// 字元不同：取左方與上方紀錄的最大值</span>
+            dp[i][j] = <span class="c-func">max</span>(dp[i - <span class="c-keyword">1</span>][j], dp[i][j - <span class="c-keyword">1</span>]); 
+        }
+    }
+}</code></pre>
+
+        <h3>第二部分：回溯尋找答案</h3>
+        <pre><code><span class="c-type">string</span> lcs = <span class="c-string">""</span>;
+<span class="c-keyword">int</span> i = m, j = n; <span class="c-comment">// 從右下角開始</span>
+
+<span class="c-keyword">while</span> (i &gt; <span class="c-keyword">0</span> &amp;&amp; j &gt; <span class="c-keyword">0</span>) {
+    <span class="c-keyword">if</span> (s1[i - <span class="c-keyword">1</span>] == s2[j - <span class="c-keyword">1</span>]) {
+        <span class="c-comment">// 情況 1：字元相同，將字元加入解答，往左上方移動</span>
+        lcs += s1[i - <span class="c-keyword">1</span>]; 
+        i--; j--;
+    } 
+    <span class="c-keyword">else</span> <span class="c-keyword">if</span> (dp[i - <span class="c-keyword">1</span>][j] &gt;= dp[i][j - <span class="c-keyword">1</span>]) {
+        <span class="c-comment">// 情況 2：上方紀錄 >= 左方紀錄，往上方移動 (相同時預設往上)</span>
+        i--; 
+    } 
+    <span class="c-keyword">else</span> {
+        <span class="c-comment">// 情況 3：左方紀錄 > 上方紀錄，往左方移動</span>
+        j--; 
+    }
+}
+<span class="c-comment">// 最後因為是倒著找回來的，記得將字串反轉</span>
+<span class="c-func">reverse</span>(lcs.begin(), lcs.end());</code></pre>
+    </div>
+
+    <!-- 7. 總結 -->
+    <div class="section-card">
+        <h2>7. 總結</h2>
+        <ul>
+            <li><strong>本質精神：</strong>LCS 利用動態規劃，將龐大且不可能算完的指數級問題，化解為「紀錄」與「查表」的簡單動作。</li>
+            <li><strong>空間與保護：</strong>增加邊界 0 (保護層) 不僅省去程式碼處理邊界的麻煩，更確保了演算法邏輯的優雅。</li>
+            <li><strong>答案多樣性：</strong>我們從回溯邏輯中清楚看到，當相鄰格子數值相同時，不同的走法就造就了多樣化的 LCS 答案路徑。</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    /**
+     * 核心動畫引擎：負責產生 Snapshot 並播放
+     */
+    class LCSAnimator {
+        constructor(containerId, s1, s2, mode) {
+            this.container = document.getElementById(containerId);
+            this.s1 = s1;
+            this.s2 = s2;
+            this.m = s1.length;
+            this.n = s2.length;
+            this.mode = mode; // 'dp', 'backtrack', 'interactive'
+            
+            this.dp = Array.from({length: this.m + 1}, () => Array(this.n + 1).fill(''));
+            this.steps = [];
+            this.currentStep = 0;
+            this.timer = null;
+            this.speed = 500;
+            
+            this.paths = []; // 給回溯用的
+
+            this.initDOM();
+            if (mode === 'dp' || mode === 'interactive') {
+                this.generateDPSteps();
+            }
+            if (mode === 'interactive') {
+                this.calculateFullDP(); // 為了回溯需要完整矩陣
+                this.findAllPaths();
+                if(this.paths.length > 0) this.generatePathSteps(this.paths[0]); // 把回溯動畫直接接在建表後面
+            }
+            if (mode === 'backtrack') {
+                this.calculateFullDP();
+                this.findAllPaths();
+            }
+        }
+
+        initDOM() {
+            this.container.innerHTML = `
+                <div class="dp-table-container">
+                    <table id="table-${this.container.id}"></table>
+                </div>
+                <div class="status-msg" id="msg-${this.container.id}">點擊播放或下一步開始動畫</div>
+                <div class="controls">
+                    <button id="btn-prev-${this.container.id}">⏮ 上一步</button>
+                    <button id="btn-play-${this.container.id}">▶ 自動播放</button>
+                    <button id="btn-pause-${this.container.id}">⏸ 暫停</button>
+                    <button id="btn-next-${this.container.id}">⏭ 下一步</button>
+                </div>
+            `;
+            
+            // 綁定事件
+            document.getElementById(`btn-prev-${this.container.id}`).addEventListener('click', () => this.prev());
+            document.getElementById(`btn-next-${this.container.id}`).addEventListener('click', () => this.next());
+            document.getElementById(`btn-play-${this.container.id}`).addEventListener('click', () => this.play());
+            document.getElementById(`btn-pause-${this.container.id}`).addEventListener('click', () => this.pause());
+
+            this.renderTableGrid();
+        }
+
+        renderTableGrid() {
+            let table = document.getElementById(`table-${this.container.id}`);
+            let html = '';
+            
+            // Top Header (S2)
+            html += '<tr><th></th><th></th>';
+            for (let j = 0; j < this.n; j++) {
+                html += `<th>${this.s2[j]}</th>`;
+            }
+            html += '</tr>';
+
+            for (let i = 0; i <= this.m; i++) {
+                html += '<tr>';
+                // Left Header (S1)
+                if (i === 0) html += '<th></th>';
+                else html += `<th>${this.s1[i-1]}</th>`;
+
+                for (let j = 0; j <= this.n; j++) {
+                    html += `<td id="cell-${this.container.id}-${i}-${j}"></td>`;
+                }
+                html += '</tr>';
+            }
+            table.innerHTML = html;
+        }
+
+        createSnapshot(gridData, highlights, message) {
+            return {
+                grid: gridData.map(row => [...row]),
+                highlights: JSON.parse(JSON.stringify(highlights)), // deep copy
+                message: message
+            };
+        }
+
+        generateDPSteps() {
+            let tempDp = Array.from({length: this.m + 1}, () => Array(this.n + 1).fill(''));
+            
+            // Step 0
+            this.steps.push(this.createSnapshot(tempDp, [], "初始狀態：準備填寫表格 (全部為空)"));
+
+            // Fill 0s (保護層)
+            let zHighlights = [];
+            for (let i = 0; i <= this.m; i++) {
+                tempDp[i][0] = 0;
+                zHighlights.push([i, 0, 'cell-zero']);
+                this.steps.push(this.createSnapshot(tempDp, [...zHighlights], `加入保護層：設定 DP[${i}][0] = 0`));
+            }
+            for (let j = 1; j <= this.n; j++) {
+                tempDp[0][j] = 0;
+                zHighlights.push([0, j, 'cell-zero']);
+                this.steps.push(this.createSnapshot(tempDp, [...zHighlights], `加入保護層：設定 DP[0][${j}] = 0`));
+            }
+
+            // Fill DP
+            for (let i = 1; i <= this.m; i++) {
+                for (let j = 1; j <= this.n; j++) {
+                    let msg = `比較 S1[${i-1}]='${this.s1[i-1]}' 與 S2[${j-1}]='${this.s2[j-1]}'：`;
+                    let hls = [...zHighlights]; // 保持邊界顏色
+                    
+                    if (this.s1[i-1] === this.s2[j-1]) {
+                        tempDp[i][j] = tempDp[i-1][j-1] + 1;
+                        hls.push([i-1, j-1, 'cell-match']);
+                        hls.push([i, j, 'cell-current']);
+                        msg += `相同！直接繼承左上方紀錄 + 1 ➔ 填入 ${tempDp[i][j]}`;
+                    } else {
+                        tempDp[i][j] = Math.max(tempDp[i-1][j], tempDp[i][j-1]);
+                        hls.push([i-1, j, 'cell-mismatch']);
+                        hls.push([i, j-1, 'cell-mismatch']);
+                        hls.push([i, j, 'cell-current']);
+                        msg += `不同。查表比較上方與左方最大值 ➔ 填入 ${tempDp[i][j]}`;
+                    }
+                    this.steps.push(this.createSnapshot(tempDp, hls, msg));
+                }
+            }
+        }
+
+        // 不產生動畫，純粹把矩陣算出來供回溯用
+        calculateFullDP() {
+            for (let i = 0; i <= this.m; i++) this.dp[i][0] = 0;
+            for (let j = 0; j <= this.n; j++) this.dp[0][j] = 0;
+            for (let i = 1; i <= this.m; i++) {
+                for (let j = 1; j <= this.n; j++) {
+                    if (this.s1[i-1] === this.s2[j-1]) this.dp[i][j] = this.dp[i-1][j-1] + 1;
+                    else this.dp[i][j] = Math.max(this.dp[i-1][j], this.dp[i][j-1]);
+                }
+            }
+        }
+
+        findAllPaths() {
+            this.paths = [];
+            let self = this;
+            function dfs(i, j, currentPath) {
+                if (i === 0 || j === 0) {
+                    self.paths.push([...currentPath, [i, j]]);
+                    return;
+                }
+                if (self.s1[i-1] === self.s2[j-1]) {
+                    dfs(i-1, j-1, [...currentPath, [i, j]]);
+                } else {
+                    if (self.dp[i-1][j] === self.dp[i][j]) dfs(i-1, j, [...currentPath, [i, j]]);
+                    if (self.dp[i][j-1] === self.dp[i][j]) dfs(i, j-1, [...currentPath, [i, j]]);
+                }
+            }
+            dfs(this.m, this.n, []);
+        }
+
+        generatePathSteps(path) {
+            let hls = [];
+            // 為了讓邊界 0 維持灰色
+            for (let i = 0; i <= this.m; i++) hls.push([i, 0, 'cell-zero']);
+            for (let j = 1; j <= this.n; j++) hls.push([0, j, 'cell-zero']);
+
+            let resultString = "";
+            
+            // 提示字眼切換
+            let sectionMsg = this.mode === 'interactive' ? "【建表完成】現在準備從右下角出發，開始回推尋找解答路徑" : "準備從右下角出發，開始回推尋找路徑";
+            this.steps.push(this.createSnapshot(this.dp, [...hls], sectionMsg));
+
+            for(let k = 0; k < path.length; k++) {
+                let [r, c] = path[k];
+                if (r === 0 || c === 0) {
+                    this.steps.push(this.createSnapshot(this.dp, [...hls], `抵達保護層 (0)，回溯結束！找到的最長共同序列為：【 ${resultString.split('').reverse().join('')} 】`));
+                    break;
+                }
+
+                let msg = "";
+                let cellClass = "";
+                
+                if (this.s1[r-1] === this.s2[c-1]) {
+                    cellClass = 'cell-path-match';
+                    resultString += this.s1[r-1];
+                    msg = `座標 (${r},${c}) 字元 '${this.s1[r-1]}' 相同！加入答案，沿對角線往左上方前進。`;
+                } else {
+                    cellClass = 'cell-path';
+                    let [nr, nc] = path[k+1];
+                    if (nr === r - 1) msg = `字元不同。上方紀錄數值 (${this.dp[r][c]}) 允許，往上方前進。`;
+                    else msg = `字元不同。左方紀錄數值 (${this.dp[r][c]}) 允許，往左方前進。`;
+                }
+                
+                hls.push([r, c, cellClass]);
+                // 反向字串顯示
+                let currentStr = resultString.split('').reverse().join('');
+                this.steps.push(this.createSnapshot(this.dp, [...hls], msg + ` 目前答案組成: ${currentStr}`));
+            }
+        }
+
+        renderCurrentStep() {
+            if (this.steps.length === 0) return;
+            let state = this.steps[this.currentStep];
+            
+            // Update Text
+            for (let i = 0; i <= this.m; i++) {
+                for (let j = 0; j <= this.n; j++) {
+                    let cell = document.getElementById(`cell-${this.container.id}-${i}-${j}`);
+                    cell.innerText = state.grid[i][j];
+                    cell.className = ''; // clear classes
+                }
+            }
+            
+            // Apply highlights
+            for (let hl of state.highlights) {
+                let cell = document.getElementById(`cell-${this.container.id}-${hl[0]}-${hl[1]}`);
+                if(cell) cell.classList.add(hl[2]);
+            }
+
+            document.getElementById(`msg-${this.container.id}`).innerText = `[步驟 ${this.currentStep}/${this.steps.length-1}] ` + state.message;
+        }
+
+        play() {
+            if (this.timer) return;
+            this.timer = setInterval(() => {
+                if (this.currentStep < this.steps.length - 1) {
+                    this.next();
+                } else {
+                    this.pause();
+                }
+            }, this.speed);
+        }
+
+        pause() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        }
+
+        next() {
+            if (this.currentStep < this.steps.length - 1) {
+                this.currentStep++;
+                this.renderCurrentStep();
+            }
+        }
+
+        prev() {
+            if (this.currentStep > 0) {
+                this.currentStep--;
+                this.renderCurrentStep();
+            }
+        }
+
+        resetAndLoadPath(path) {
+            this.pause();
+            this.steps = [];
+            this.currentStep = 0;
+            this.generatePathSteps(path);
+            this.renderCurrentStep();
+        }
+    }
+
+    // 初始化區塊
+    document.addEventListener("DOMContentLoaded", () => {
+        const s1_def = "ABCBDAB";
+        const s2_def = "BDCABA";
+
+        // Section 3: DP 動畫
+        const dpAnim = new LCSAnimator('dp-anim-container', s1_def, s2_def, 'dp');
+        dpAnim.renderCurrentStep();
+
+        // Section 4: 回溯動畫
+        const btAnim = new LCSAnimator('bt-anim-container', s1_def, s2_def, 'backtrack');
+        let select = document.getElementById('path-select');
+        
+        // 匯入多重路徑到 Dropdown
+        btAnim.paths.forEach((path, idx) => {
+            let str = "";
+            for(let p of path) {
+                let [r, c] = p;
+                if(r>0 && c>0 && s1_def[r-1] === s2_def[c-1]) str += s1_def[r-1];
+            }
+            str = str.split('').reverse().join('');
+            
+            let opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `路徑 ${idx + 1} (產生: ${str})`;
+            select.appendChild(opt);
+        });
+
+        if(btAnim.paths.length > 0) {
+            btAnim.resetAndLoadPath(btAnim.paths[0]);
+        }
+
+        select.addEventListener('change', (e) => {
+            let idx = parseInt(e.target.value);
+            btAnim.resetAndLoadPath(btAnim.paths[idx]);
+        });
+
+        // Section 5: 實戰測驗與遊樂場 (不自動播放，等待使用者點擊)
+        let customAnim = null;
+        document.getElementById('btn-generate-custom').addEventListener('click', () => {
+            let cs1 = document.getElementById('custom-s1').value.toUpperCase().trim();
+            let cs2 = document.getElementById('custom-s2').value.toUpperCase().trim();
+            
+            if(!cs1 || !cs2) {
+                alert("字串不能為空！");
+                return;
+            }
+            if(customAnim) customAnim.pause();
+            customAnim = new LCSAnimator('custom-anim-container', cs1, cs2, 'interactive');
+            customAnim.speed = 250; // 互動區稍微流暢一點
+            customAnim.renderCurrentStep();
+            customAnim.play(); // 點擊按鈕後開始自動撥放
+        });
+    });
+
+</script>
+</body>
+</html>
